@@ -1,7 +1,9 @@
 # lexcel-global-explainability
 
 Once in the lexcel-explainability2/ folder, launch command is 
+
 python3 main.py
+
 NB: an interactive menu allows for manual input setting
 
 lexcel contains pre-processing + evaluation functions: 
