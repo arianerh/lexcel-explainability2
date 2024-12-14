@@ -1,4 +1,5 @@
 # lexcel-explainability2
 
-Launch using
+Launch using command line:
+
   python3 main.py
