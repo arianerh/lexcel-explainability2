@@ -5,6 +5,7 @@ import itertools
 import random
 
 import model
+import votingrules
 
 # Ranking contains a numpy array of Orders (to be used to look at global explanation)
 class Ranking :
@@ -16,7 +17,7 @@ class Ranking :
 		for v in self.votes :
 			print(v)
 
-# Order contains the size of the population (popsize), the nb of coalitions present in it (nb_el) and its description as a numpy array of popsize-sized binary vectors describing the coalitions (e.g. for a population of size 3, [1,0,1] represents 13)
+# Order contains the size of the population (popsize), the nb of coalitions present in it (nb_el) and its description as a numpy array of popsize-sized binary vectors describing the coalitions (e.g. for a population of size 3, [1,0,1] represents coalition 02)
 class Order :
 	# popsize is an int
 	def __init__(self, popsize) :
@@ -83,7 +84,6 @@ class Order :
 		nb_els = len(prefs)
 		self.prefs = np.array(prefs)
 
-
 	# given a coalition c described as a tuple
 	# returns it as a list describing the coalition as a binary vector
 	def coal_to_bin(self,c) :
@@ -92,10 +92,9 @@ class Order :
 			res[el] = 1
 		return res
 
-
 	# given a point (numpy array of values) to evaluate, and a list of donor points to complete it with
-	# generates a ranking over coalitions based on performance of modified 
-	def evaluate(self, current_point, donor_points) :
+	# generates a ranking over coalitions based on performance of donor point modified with some of the donor points
+	def point_evaluation(self, current_point, donor_points) :
 		coals = list()
 		for i in range(1,len(self.pop)+1) :
 			coals += list(itertools.combinations(self.pop,i))
@@ -124,6 +123,27 @@ class Order :
 		# print(p)
 		self.set_prefs(p)
 
+
+# given the size of the population n
+# returns a list of local preferences (rankings, each described by a list of lists) determined from an user-input number of points
+def local_evaluation(n) :
+	points = []
+	nb_points = 4
+	if input("Number of points to use for study is by default 4. Do you want to enter another size? [Y/N] ").lower() == "y" :
+		try : 
+			n = int(input("Enter desired number of points: "))
+		except ValueError as ve:
+			print("Incorrect type of input. Size of population is set to 4 by default")
+			n = 4
+	for i in range(nb_points) :
+		points.append(generate_point(n))
+		print(points[-1])
+	local_prefs = []
+	for p in points :
+		o = Order(n)
+		o.point_evaluation(p, [x for x in points if np.array_equal(x,p)])
+		local_prefs.append(o.lexcel())
+	return local_prefs
 
 
 # given a population (list of integers from 0 to the size of the population)
@@ -160,32 +180,11 @@ if __name__ == "__main__" :
 			n = 4
 	# m = 10
 	# votes = []
-	points = []
-	nb_points = 4
-	if input("Number of points to use for comparison (not including the evaluated point) is by default 4. Do you want to enter another size? [Y/N] ").lower() == "y" :
-		try : 
-			n = int(input("Enter desired number of points: "))
-		except ValueError as ve:
-			print("Incorrect type of input. Size of population is set to 4 by default")
-			n = 4
-	for i in range(nb_points) :
-		points.append(generate_point(n))
-		print(points[-1])
-	print("test point is generated randomly")
-	test = generate_point(n)
-	print("to test : "+str(test)+"\n")
-	o = Order(n)
-	o.evaluate(test, points)
-	print("Order obtained by evaluation is the following")
-	print(o)
-	# for i in range(m) :
-	# 	tmp = Order(n)
-	# 	tmp.set_prefs(generate_prefs(tmp.pop))
-	# 	votes.append(tmp)
-	# r = Ranking(votes)
-	# print(r)
-	# for v in votes :
-	# 	print(v)
-	# print(np.sum(o.prefs, axis=0))
-	print("From which we obtain the following individual ranking")
-	print(o.lexcel())
+	local_prefs = local_evaluation(n)
+	print("local prefs are ")
+	for p in local_prefs :
+		print(p)
+	global_prefs_borda = votingrules.borda(local_prefs, [i for i in range(n)])
+	print(global_prefs_borda)
+	global_prefs_wborda = votingrules.weighted_borda(local_prefs, [i for i in range(n)], [random.random() for _ in range(len(local_prefs))])
+	print(global_prefs_wborda)
